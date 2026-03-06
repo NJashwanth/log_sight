@@ -6,7 +6,7 @@ Log Sight is a VS Code extension that provides a debug-console-style log viewer 
 
 - View logs in a single focused panel.
 - Separate `debug`, `warning`, and `error` signals quickly.
-- Capture debug adapter output (for example Flutter/Dart debug sessions) and inspect it with filters.
+- Capture debug adapter output across different languages and debug sessions, then inspect it with filters.
 
 ## Features
 
