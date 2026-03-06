@@ -2,7 +2,7 @@
   "name": "log-sight",
   "displayName": "Log Sight",
   "description": "Debug-console style log tracker with timestamped debug, warning, and error logs.",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "publisher": "JashwanthNeela",
   "icon": "assets/icon.png",
   "license": "MIT",
