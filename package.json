@@ -1,0 +1,51 @@
+{
+  "name": "log-sight",
+  "displayName": "Log Sight",
+  "description": "Debug-console style log tracker with timestamped debug, warning, and error logs.",
+  "version": "0.0.1",
+  "publisher": "local",
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "logsight.showConsole",
+        "title": "Log Sight: Show Console"
+      },
+      {
+        "command": "logsight.logDebug",
+        "title": "Log Sight: Add Debug Log"
+      },
+      {
+        "command": "logsight.logWarning",
+        "title": "Log Sight: Add Warning Log"
+      },
+      {
+        "command": "logsight.logError",
+        "title": "Log Sight: Add Error Log"
+      },
+      {
+        "command": "logsight.clearLogs",
+        "title": "Log Sight: Clear Logs"
+      }
+    ]
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "vscode:prepublish": "npm run compile"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.14",
+    "@types/vscode": "^1.90.0",
+    "typescript": "^5.8.2"
+  }
+}
