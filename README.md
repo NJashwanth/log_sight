@@ -1,46 +1,75 @@
 # Log Sight
 
-Log Sight is a VS Code extension that behaves like a lightweight debug console:
-- Captures and displays timestamped logs.
-- Differentiates `debug`, `warning`, and `error` log levels.
-- Provides a dedicated console-style UI with filtering.
+Log Sight is a VS Code extension that provides a debug-console-style log viewer with timestamps and level-aware filtering.
+
+## Why Log Sight
+
+- View logs in a single focused panel.
+- Separate `debug`, `warning`, and `error` signals quickly.
+- Capture debug adapter output (for example Flutter/Dart debug sessions) and inspect it with filters.
 
 ## Features
 
-- `Log Sight: Show Console`
-  - Opens a console-like webview panel with `All`, `Debug`, `Warning`, and `Error` filters.
-- `Log Sight: Add Debug Log`
-  - Prompts for a debug message and logs it with a timestamp.
-- `Log Sight: Add Warning Log`
-  - Prompts for a warning message and logs it with a timestamp.
-- `Log Sight: Add Error Log`
-  - Prompts for an error message and logs it with a timestamp.
-- `Log Sight: Clear Logs`
-  - Clears both in-memory logs and the output channel.
+- Timestamped log entries for every message.
+- Log levels: `debug`, `warning`, `error`.
+- Console-style panel with filters: `All`, `Debug`, `Warning`, `Error`.
+- Manual log commands from Command Palette.
+- Programmatic append API for integration with commands and automation.
+- Mirrors extension-host `console.debug`, `console.warn`, and `console.error`.
 
-The extension also mirrors `console.debug(...)`, `console.warn(...)`, and `console.error(...)` calls from the extension host into Log Sight automatically.
+## Commands
+
+- `Log Sight: Show Console`
+- `Log Sight: Add Debug Log`
+- `Log Sight: Add Warning Log`
+- `Log Sight: Add Error Log`
+- `Log Sight: Clear Logs`
+
+## Usage
+
+1. Open Command Palette.
+2. Run `Log Sight: Show Console`.
+3. Start your app/debug session.
+4. Use level chips to filter logs.
 
 ## Programmatic API
 
-Other extension commands or automations can append logs with:
+Use command `logsight.appendLog` to append logs from your own extension workflow:
 
 ```ts
 await vscode.commands.executeCommand("logsight.appendLog", {
-  level: "debug", // or "warning" or "error"
-  message: "Build started",
+  level: "warning", // "debug" | "warning" | "error"
+  message: "Disk usage is above threshold",
   source: "build-pipeline"
 });
 ```
 
-## Build
+Payload shape:
+
+- `level` (optional): `debug`, `warning`, `warn`, or `error`.
+- `message` (optional): log text.
+- `source` (optional): short source label shown in the UI.
+
+## Development
 
 ```bash
 npm install
 npm run compile
 ```
 
-## Run
+Run locally:
 
 1. Open this project in VS Code.
-2. Press `F5` to start the Extension Development Host.
-3. Use the Command Palette and run `Log Sight: Show Console`.
+2. Press `F5` to launch Extension Development Host.
+3. In the new window, run `Log Sight: Show Console`.
+
+## Security Notes
+
+- Webview runs with a restrictive Content Security Policy.
+- Log content is escaped before rendering in the webview.
+- In-memory log store is bounded to prevent unbounded growth.
+
+## Current Limitations
+
+- VS Code does not expose a universal API to capture every log from every extension/process globally.
+- To capture logs from another VS Code window/process, Log Sight must also be running in that window.
