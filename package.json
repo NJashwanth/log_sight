@@ -3,7 +3,23 @@
   "displayName": "Log Sight",
   "description": "Debug-console style log tracker with timestamped debug, warning, and error logs.",
   "version": "0.0.1",
-  "publisher": "local",
+  "publisher": "JashwanthNeela",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/NJashwanth/log_sight.git"
+  },
+  "homepage": "https://github.com/NJashwanth/log_sight#readme",
+  "bugs": {
+    "url": "https://github.com/NJashwanth/log_sight/issues"
+  },
+  "keywords": [
+    "logs",
+    "debug",
+    "console",
+    "troubleshooting",
+    "developer-tools"
+  ],
   "engines": {
     "vscode": "^1.90.0"
   },
