@@ -5,16 +5,29 @@ import { LogEntry } from "./types";
 type ViewFilter = "all" | "debug" | "warning" | "error";
 
 interface PanelMessage {
-  type: "setFilter" | "ready" | "clear";
+  type: "setFilter" | "ready" | "clear" | "startCapture" | "stopCapture";
   value?: ViewFilter;
+}
+
+interface CaptureControls {
+  isCapturing: () => boolean;
+  onStartCapture: () => void;
+  onStopCapture: () => void;
 }
 
 export class LogPanel implements vscode.Disposable {
   private panel: vscode.WebviewPanel | undefined;
   private readonly disposables: vscode.Disposable[] = [];
   private currentFilter: ViewFilter = "all";
+  private isCapturing = true;
 
-  constructor(private readonly extensionUri: vscode.Uri, private readonly logStore: LogStore) {
+  constructor(
+    private readonly extensionUri: vscode.Uri,
+    private readonly logStore: LogStore,
+    private readonly captureControls: CaptureControls
+  ) {
+    this.isCapturing = this.captureControls.isCapturing();
+
     this.disposables.push(
       this.logStore.onDidChange((entries) => {
         this.postLogs(entries);
@@ -48,8 +61,15 @@ export class LogPanel implements vscode.Disposable {
           case "clear":
             this.logStore.clear();
             return;
+          case "startCapture":
+            this.captureControls.onStartCapture();
+            return;
+          case "stopCapture":
+            this.captureControls.onStopCapture();
+            return;
           case "ready":
             this.postLogs(this.logStore.getAll());
+            this.postCaptureState();
             return;
           default:
             return;
@@ -61,11 +81,17 @@ export class LogPanel implements vscode.Disposable {
 
     this.panel.reveal(vscode.ViewColumn.Beside, true);
     this.postLogs(this.logStore.getAll());
+    this.postCaptureState();
   }
 
   public dispose(): void {
     vscode.Disposable.from(...this.disposables).dispose();
     this.panel?.dispose();
+  }
+
+  public setCaptureState(isCapturing: boolean): void {
+    this.isCapturing = isCapturing;
+    this.postCaptureState();
   }
 
   private postLogs(entries: readonly LogEntry[]): void {
@@ -84,6 +110,19 @@ export class LogPanel implements vscode.Disposable {
     this.panel.webview.postMessage({
       type: "update",
       payload: filtered
+    });
+  }
+
+  private postCaptureState(): void {
+    if (!this.panel) {
+      return;
+    }
+
+    this.panel.webview.postMessage({
+      type: "captureState",
+      payload: {
+        isCapturing: this.isCapturing
+      }
     });
   }
 
@@ -165,6 +204,36 @@ export class LogPanel implements vscode.Disposable {
       cursor: pointer;
     }
 
+    .toggle {
+      border-radius: 6px;
+      border: 1px solid #8aa2b8;
+      background: transparent;
+      color: var(--text);
+      padding: 6px 10px;
+      cursor: pointer;
+    }
+
+    .toggle.stop {
+      border-color: #ffcc66;
+      color: #ffcc66;
+    }
+
+    .toggle.start {
+      border-color: #4db6ac;
+      color: #4db6ac;
+    }
+
+    .status {
+      font-size: 12px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: #9bb6cc;
+    }
+
+    .status strong {
+      color: var(--text);
+    }
+
     #logs {
       padding: 8px 12px 24px;
       overflow: auto;
@@ -228,6 +297,8 @@ export class LogPanel implements vscode.Disposable {
     <button class="chip" data-filter="warning">Warning</button>
     <button class="chip" data-filter="error">Error</button>
     <div class="spacer"></div>
+    <div class="status" id="capture-status">Capture: <strong>Running</strong></div>
+    <button class="toggle stop" id="capture-toggle" data-state="running">Stop</button>
     <button class="clear" id="clear">Clear</button>
   </div>
 
@@ -237,6 +308,8 @@ export class LogPanel implements vscode.Disposable {
     const vscode = acquireVsCodeApi();
     const logContainer = document.getElementById("logs");
     const chips = Array.from(document.querySelectorAll(".chip"));
+    const captureStatus = document.getElementById("capture-status");
+    const captureToggle = document.getElementById("capture-toggle");
 
     function setFilter(value) {
       chips.forEach((chip) => {
@@ -255,8 +328,18 @@ export class LogPanel implements vscode.Disposable {
       vscode.postMessage({ type: "clear" });
     });
 
+    captureToggle.addEventListener("click", () => {
+      const shouldStart = captureToggle.dataset.state === "stopped";
+      vscode.postMessage({ type: shouldStart ? "startCapture" : "stopCapture" });
+    });
+
     window.addEventListener("message", (event) => {
       const message = event.data;
+      if (message.type === "captureState") {
+        setCaptureState(Boolean(message.payload && message.payload.isCapturing));
+        return;
+      }
+
       if (message.type !== "update") {
         return;
       }
@@ -282,6 +365,14 @@ export class LogPanel implements vscode.Disposable {
 
       logContainer.scrollTop = logContainer.scrollHeight;
     });
+
+    function setCaptureState(isCapturing) {
+      captureStatus.innerHTML = 'Capture: <strong>' + (isCapturing ? 'Running' : 'Stopped') + '</strong>';
+      captureToggle.dataset.state = isCapturing ? 'running' : 'stopped';
+      captureToggle.textContent = isCapturing ? 'Stop' : 'Start';
+      captureToggle.classList.toggle('stop', isCapturing);
+      captureToggle.classList.toggle('start', !isCapturing);
+    }
 
     function escapeHtml(value) {
       return String(value)

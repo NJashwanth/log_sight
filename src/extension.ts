@@ -11,12 +11,27 @@ interface AppendLogPayload {
 
 export function activate(context: vscode.ExtensionContext): void {
   const logStore = new LogStore();
-  const panel = new LogPanel(context.extensionUri, logStore);
+  let isCapturing = true;
+  let appendLog: (level: LogLevel, message: string, source?: string, force?: boolean) => void;
+
+  const panel = new LogPanel(context.extensionUri, logStore, {
+    isCapturing: () => isCapturing,
+    onStartCapture: () => {
+      startCapture();
+    },
+    onStopCapture: () => {
+      stopCapture();
+    }
+  });
   const output = vscode.window.createOutputChannel("Log Sight", { log: true });
 
   context.subscriptions.push(logStore, panel, output);
 
-  const appendLog = (level: LogLevel, message: string, source = "extension"): void => {
+  appendLog = (level: LogLevel, message: string, source = "extension", force = false): void => {
+    if (!isCapturing && !force) {
+      return;
+    }
+
     const trimmed = message.trim();
     const normalized = trimmed.length > 0 ? trimmed : "(empty message)";
     const entry = logStore.add(level, normalized, source);
@@ -33,6 +48,26 @@ export function activate(context: vscode.ExtensionContext): void {
     }
 
     output.debug(line);
+  };
+
+  const startCapture = (): void => {
+    if (isCapturing) {
+      return;
+    }
+
+    isCapturing = true;
+    panel.setCaptureState(true);
+    appendLog("debug", "Log capture resumed.", "lifecycle", true);
+  };
+
+  const stopCapture = (): void => {
+    if (!isCapturing) {
+      return;
+    }
+
+    appendLog("warning", "Log capture paused.", "lifecycle", true);
+    isCapturing = false;
+    panel.setCaptureState(false);
   };
 
   const originalConsoleDebug = console.debug.bind(console);
@@ -100,6 +135,24 @@ export function activate(context: vscode.ExtensionContext): void {
       panel.show();
       output.show(true);
     }),
+    vscode.commands.registerCommand("logsight.startCapture", () => {
+      if (isCapturing) {
+        vscode.window.showInformationMessage("Log Sight capture is already running.");
+        return;
+      }
+
+      startCapture();
+      panel.show();
+    }),
+    vscode.commands.registerCommand("logsight.stopCapture", () => {
+      if (!isCapturing) {
+        vscode.window.showInformationMessage("Log Sight capture is already stopped.");
+        return;
+      }
+
+      stopCapture();
+      panel.show();
+    }),
     vscode.commands.registerCommand("logsight.logDebug", async () => {
       const message = await vscode.window.showInputBox({
         title: "Log Sight Debug Message",
@@ -156,6 +209,7 @@ export function activate(context: vscode.ExtensionContext): void {
   );
 
   appendLog("debug", "Log Sight activated.", "lifecycle");
+  panel.setCaptureState(true);
 }
 
 export function deactivate(): void {

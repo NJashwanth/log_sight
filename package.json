@@ -2,7 +2,7 @@
   "name": "log-sight",
   "displayName": "Log Sight",
   "description": "Debug-console style log tracker with timestamped debug, warning, and error logs.",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "publisher": "JashwanthNeela",
   "icon": "assets/icon.png",
   "license": "MIT",
@@ -36,6 +36,14 @@
       {
         "command": "logsight.showConsole",
         "title": "Log Sight: Show Console"
+      },
+      {
+        "command": "logsight.startCapture",
+        "title": "Log Sight: Start Log Capture"
+      },
+      {
+        "command": "logsight.stopCapture",
+        "title": "Log Sight: Stop Log Capture"
       },
       {
         "command": "logsight.logDebug",
