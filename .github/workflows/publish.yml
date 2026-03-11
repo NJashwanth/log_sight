@@ -43,7 +43,8 @@ jobs:
       - name: Resolve package metadata
         id: metadata
         run: |
-          echo "package_file=$(node -p \"const pkg=require('./package.json'); 'artifacts/' + pkg.name + '-' + pkg.version + '.vsix'\")" >> "$GITHUB_OUTPUT"
+          PACKAGE_FILE=$(node -p 'const pkg=require("./package.json"); "artifacts/" + pkg.name + "-" + pkg.version + ".vsix"')
+          echo "package_file=$PACKAGE_FILE" >> "$GITHUB_OUTPUT"
 
       - name: Validate tag matches package version
         if: startsWith(github.ref, 'refs/tags/v')
