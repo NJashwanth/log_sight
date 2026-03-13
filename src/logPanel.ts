@@ -5,8 +5,9 @@ import { LogEntry } from "./types";
 type ViewFilter = "all" | "debug" | "warning" | "error";
 
 interface PanelMessage {
-  type: "setFilter" | "ready" | "clear" | "startCapture" | "stopCapture";
+  type: "setFilter" | "setSearch" | "ready" | "clear" | "startCapture" | "stopCapture";
   value?: ViewFilter;
+  query?: string;
 }
 
 interface CaptureControls {
@@ -19,6 +20,7 @@ export class LogPanel implements vscode.Disposable {
   private panel: vscode.WebviewPanel | undefined;
   private readonly disposables: vscode.Disposable[] = [];
   private currentFilter: ViewFilter = "all";
+  private searchQuery = "";
   private isCapturing = true;
 
   constructor(
@@ -56,6 +58,10 @@ export class LogPanel implements vscode.Disposable {
         switch (message.type) {
           case "setFilter":
             this.currentFilter = message.value ?? "all";
+            this.postLogs(this.logStore.getAll());
+            return;
+          case "setSearch":
+            this.searchQuery = (message.query ?? "").trim().toLowerCase();
             this.postLogs(this.logStore.getAll());
             return;
           case "clear":
@@ -100,11 +106,17 @@ export class LogPanel implements vscode.Disposable {
     }
 
     const filtered = entries.filter((entry) => {
-      if (this.currentFilter === "all") {
+      const levelMatches = this.currentFilter === "all" || entry.level === this.currentFilter;
+      if (!levelMatches) {
+        return false;
+      }
+
+      if (this.searchQuery.length === 0) {
         return true;
       }
 
-      return entry.level === this.currentFilter;
+      const haystack = `${entry.timestamp} ${entry.level} ${entry.source} ${entry.message}`.toLowerCase();
+      return haystack.includes(this.searchQuery);
     });
 
     this.panel.webview.postMessage({
@@ -195,6 +207,22 @@ export class LogPanel implements vscode.Disposable {
       flex: 1;
     }
 
+    .search {
+      width: 240px;
+      max-width: 40vw;
+      border-radius: 6px;
+      border: 1px solid #8aa2b8;
+      background: rgba(4, 15, 25, 0.5);
+      color: var(--text);
+      padding: 6px 10px;
+      font-family: inherit;
+      font-size: 12px;
+    }
+
+    .search::placeholder {
+      color: #8ba4ba;
+    }
+
     .clear {
       border-radius: 6px;
       border: 1px solid #8aa2b8;
@@ -238,6 +266,26 @@ export class LogPanel implements vscode.Disposable {
       padding: 8px 12px 24px;
       overflow: auto;
       flex: 1;
+    }
+
+    .jump-latest {
+      position: fixed;
+      right: 16px;
+      bottom: 16px;
+      border-radius: 999px;
+      border: 1px solid #4db6ac;
+      background: rgba(9, 36, 54, 0.9);
+      color: #4db6ac;
+      padding: 8px 12px;
+      font-size: 12px;
+      cursor: pointer;
+      display: none;
+    }
+
+    .jump-latest.show {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
     }
 
     .row {
@@ -297,19 +345,25 @@ export class LogPanel implements vscode.Disposable {
     <button class="chip" data-filter="warning">Warning</button>
     <button class="chip" data-filter="error">Error</button>
     <div class="spacer"></div>
+    <input id="search" class="search" type="text" placeholder="Search logs..." aria-label="Search logs">
     <div class="status" id="capture-status">Capture: <strong>Running</strong></div>
     <button class="toggle stop" id="capture-toggle" data-state="running">Stop</button>
     <button class="clear" id="clear">Clear</button>
   </div>
 
   <div id="logs"></div>
+  <button id="jump-latest" class="jump-latest" type="button">Latest</button>
 
   <script nonce="${nonce}">
     const vscode = acquireVsCodeApi();
     const logContainer = document.getElementById("logs");
     const chips = Array.from(document.querySelectorAll(".chip"));
+    const searchInput = document.getElementById("search");
     const captureStatus = document.getElementById("capture-status");
     const captureToggle = document.getElementById("capture-toggle");
+    const jumpLatest = document.getElementById("jump-latest");
+
+    let userScrolledUp = false;
 
     function setFilter(value) {
       chips.forEach((chip) => {
@@ -324,6 +378,10 @@ export class LogPanel implements vscode.Disposable {
       });
     });
 
+    searchInput.addEventListener("input", () => {
+      vscode.postMessage({ type: "setSearch", query: searchInput.value });
+    });
+
     document.getElementById("clear").addEventListener("click", () => {
       vscode.postMessage({ type: "clear" });
     });
@@ -331,6 +389,14 @@ export class LogPanel implements vscode.Disposable {
     captureToggle.addEventListener("click", () => {
       const shouldStart = captureToggle.dataset.state === "stopped";
       vscode.postMessage({ type: shouldStart ? "startCapture" : "stopCapture" });
+    });
+
+    jumpLatest.addEventListener("click", () => {
+      scrollToLatest();
+    });
+
+    logContainer.addEventListener("scroll", () => {
+      updateJumpLatestVisibility();
     });
 
     window.addEventListener("message", (event) => {
@@ -363,8 +429,19 @@ export class LogPanel implements vscode.Disposable {
           + '</div>';
       }).join("");
 
-      logContainer.scrollTop = logContainer.scrollHeight;
+      updateJumpLatestVisibility();
     });
+
+    function updateJumpLatestVisibility() {
+      const distanceToBottom = logContainer.scrollHeight - logContainer.scrollTop - logContainer.clientHeight;
+      userScrolledUp = distanceToBottom > 8;
+      jumpLatest.classList.toggle("show", userScrolledUp);
+    }
+
+    function scrollToLatest() {
+      logContainer.scrollTop = logContainer.scrollHeight;
+      updateJumpLatestVisibility();
+    }
 
     function setCaptureState(isCapturing) {
       captureStatus.innerHTML = 'Capture: <strong>' + (isCapturing ? 'Running' : 'Stopped') + '</strong>';
