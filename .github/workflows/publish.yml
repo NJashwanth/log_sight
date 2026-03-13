@@ -28,7 +28,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-tags: true
+          fetch-tags: false
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -51,7 +51,7 @@ jobs:
           echo "package_file=$PACKAGE_FILE" >> "$GITHUB_OUTPUT"
 
           TAG="v$PACKAGE_VERSION"
-          if git tag --list "$TAG" | grep -q .; then
+          if git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null 2>&1; then
             echo "tag_exists=true" >> "$GITHUB_OUTPUT"
           else
             echo "tag_exists=false" >> "$GITHUB_OUTPUT"
