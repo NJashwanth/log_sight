@@ -12,7 +12,15 @@ Log Sight is a VS Code extension that provides a debug-console-style log viewer 
 
 - Timestamped log entries for every message.
 - Log levels: `debug`, `warning`, `error`.
-- Console-style panel with filters: `All`, `Debug`, `Warning`, `Error`.
+- Console-style panel with level filters: `All`, `Debug`, `Warning`, `Error`.
+- Source filter and time-range filter (`5m`, `15m`, `1h`, `24h`, `All`).
+- Optional regex search mode with invalid pattern feedback.
+- Named filter presets you can save, load, and delete.
+- Consecutive duplicate collapse with count badges.
+- Optional grouping by source for faster stream scanning.
+- Expand/collapse multiline stack traces.
+- Clickable `path:line:column` links that open files in the editor.
+- Copy actions for log rows and full stack traces.
 - Start and stop capture controls in the panel and Command Palette.
 - Manual log commands from Command Palette.
 - Programmatic append API for integration with commands and automation.
@@ -34,7 +42,9 @@ Log Sight is a VS Code extension that provides a debug-console-style log viewer 
 2. Run `Log Sight: Show Console`.
 3. Start your app/debug session.
 4. Use the `Start` and `Stop` controls to pause or resume capture.
-5. Use level chips to filter logs.
+5. Combine level, source, and time-range filters with search or regex.
+6. Save frequently used filter combinations as presets.
+7. Click stack trace file links to jump directly to source.
 
 ## Programmatic API
 
