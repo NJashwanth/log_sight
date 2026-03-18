@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.0.0
+- Added advanced filtering with source and time-range filters.
+- Added regex search mode with invalid-pattern feedback.
+- Added named filter presets in the panel.
+- Added consecutive duplicate collapsing with count badges.
+- Added source grouping toggle for easier log stream scanning.
+- Added multiline expand/collapse support for stack traces.
+- Added clickable file-path links (`path:line:column`) that open files directly in the editor.
+- Added per-row copy actions and stack-trace copy action.
+
 ## 0.0.3
 - Added start and stop controls for log capture in the Log Sight panel.
 - Added Command Palette actions to pause and resume log capture.
