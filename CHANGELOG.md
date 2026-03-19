@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.2
+- Fixed a webview script runtime issue that could leave the Log Sight panel empty.
+- Fixed toolbar interactions (including capture Start/Stop) when the panel script failed to initialize.
+- Hardened embedded script regex handling to avoid escape-related runtime breakage.
+
 ## 1.0.1
 - Fixed a regression where the panel could appear empty and toolbar actions did not respond.
 - Added re-entrancy protection around console mirroring to avoid recursive runtime failures.
