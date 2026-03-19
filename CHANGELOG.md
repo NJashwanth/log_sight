@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.1
+- Fixed a regression where the panel could appear empty and toolbar actions did not respond.
+- Added re-entrancy protection around console mirroring to avoid recursive runtime failures.
+- Improved log visibility by emitting non-warning and non-error output via info level.
+- Restored mirroring for `console.log` and `console.info` calls.
+- Replaced `Array.prototype.at` usage in duplicate collapsing for broader runtime compatibility.
+
 ## 1.0.0
 - Added advanced filtering with source and time-range filters.
 - Added regex search mode with invalid-pattern feedback.

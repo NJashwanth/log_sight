@@ -1020,7 +1020,7 @@ function collapseConsecutiveDuplicates(entries: readonly LogEntry[]): Array<LogE
   const collapsed: Array<LogEntry & { duplicateCount: number }> = [];
 
   for (const entry of entries) {
-    const previous = collapsed.at(-1);
+    const previous = collapsed.length > 0 ? collapsed[collapsed.length - 1] : undefined;
     if (previous && previous.level === entry.level && previous.source === entry.source && previous.message === entry.message) {
       previous.duplicateCount += 1;
       previous.timestamp = entry.timestamp;
