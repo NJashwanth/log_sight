@@ -47,7 +47,8 @@ export function activate(context: vscode.ExtensionContext): void {
       return;
     }
 
-    output.debug(line);
+    // Use info for non-warning/error entries so they are visible at the default Output log level.
+    output.info(line);
   };
 
   const startCapture = (): void => {
@@ -70,28 +71,59 @@ export function activate(context: vscode.ExtensionContext): void {
     panel.setCaptureState(false);
   };
 
+  const originalConsoleLog = console.log.bind(console);
+  const originalConsoleInfo = console.info.bind(console);
   const originalConsoleDebug = console.debug.bind(console);
   const originalConsoleWarn = console.warn.bind(console);
   const originalConsoleError = console.error.bind(console);
+  let isMirroringConsole = false;
 
-  // Mirror extension-host console debug/error calls into Log Sight automatically.
+  const mirrorConsole = (
+    level: LogLevel,
+    args: unknown[],
+    source: string,
+    original: (...parts: unknown[]) => void
+  ): void => {
+    if (isMirroringConsole) {
+      original(...args);
+      return;
+    }
+
+    isMirroringConsole = true;
+    try {
+      appendLog(level, args.map(stringifyPart).join(" "), source);
+    } finally {
+      isMirroringConsole = false;
+    }
+
+    original(...args);
+  };
+
+  // Mirror extension-host console calls into Log Sight automatically.
+  console.log = (...args: unknown[]) => {
+    mirrorConsole("debug", args, "console.log", originalConsoleLog);
+  };
+
+  console.info = (...args: unknown[]) => {
+    mirrorConsole("debug", args, "console.info", originalConsoleInfo);
+  };
+
   console.debug = (...args: unknown[]) => {
-    appendLog("debug", args.map(stringifyPart).join(" "), "console.debug");
-    originalConsoleDebug(...args);
+    mirrorConsole("debug", args, "console.debug", originalConsoleDebug);
   };
 
   console.error = (...args: unknown[]) => {
-    appendLog("error", args.map(stringifyPart).join(" "), "console.error");
-    originalConsoleError(...args);
+    mirrorConsole("error", args, "console.error", originalConsoleError);
   };
 
   console.warn = (...args: unknown[]) => {
-    appendLog("warning", args.map(stringifyPart).join(" "), "console.warn");
-    originalConsoleWarn(...args);
+    mirrorConsole("warning", args, "console.warn", originalConsoleWarn);
   };
 
   context.subscriptions.push(
     new vscode.Disposable(() => {
+      console.log = originalConsoleLog;
+      console.info = originalConsoleInfo;
       console.debug = originalConsoleDebug;
       console.warn = originalConsoleWarn;
       console.error = originalConsoleError;
