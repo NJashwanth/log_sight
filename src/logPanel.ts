@@ -904,7 +904,7 @@ export class LogPanel implements vscode.Disposable {
       const level = escapeHtml(log.level);
       const source = escapeHtml(log.source);
       const message = String(log.message || "");
-      const lines = message.split(/\r?\n/);
+      const lines = message.split(new RegExp("\\r?\\n"));
       const isExpanded = expandedRows.has(log.id);
       const shouldCollapse = lines.length > 1;
       const visibleText = shouldCollapse && !isExpanded ? lines[0] : message;
@@ -931,7 +931,7 @@ export class LogPanel implements vscode.Disposable {
     }
 
     function linkifyText(text) {
-      const pattern = /((?:[A-Za-z]:\\\\|\/|\.\.\/|\.\/)[^:\n]+?\.[A-Za-z0-9_\-]+):(\d+)(?::(\d+))?/g;
+      const pattern = new RegExp("((?:[A-Za-z]:\\\\\\\\|\\/|\\.\\.\\/|\\.\\/)[^:\\n]+?\\.[A-Za-z0-9_\\-]+):(\\d+)(?::(\\d+))?", "g");
       let result = "";
       let lastIndex = 0;
       let match;
@@ -949,7 +949,7 @@ export class LogPanel implements vscode.Disposable {
       }
 
       result += escapeHtml(text.slice(lastIndex));
-      return result.replace(/\n/g, "<br>");
+      return result.replace(new RegExp("\\n", "g"), "<br>");
     }
 
     function copyText(value) {
