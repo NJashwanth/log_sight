@@ -26,6 +26,7 @@ interface CaptureControls {
 export class LogPanel implements vscode.Disposable {
   private panel: vscode.WebviewPanel | undefined;
   private readonly disposables: vscode.Disposable[] = [];
+  private updateVersion = 0;
   private currentFilter: ViewFilter = "all";
   private sourceFilter = "all";
   private timeRange = "all";
@@ -170,6 +171,14 @@ export class LogPanel implements vscode.Disposable {
     this.panel.webview.postMessage({
       type: "update",
       payload: {
+        version: ++this.updateVersion,
+        viewState: {
+          filter: this.currentFilter,
+          source: this.sourceFilter,
+          timeRange: this.timeRange,
+          searchQuery: this.searchQuery,
+          regexSearch: this.regexSearch
+        },
         logs: collapsed,
         sources,
         regexError: this.regexSearch && this.searchQuery.length > 0 && !regex
@@ -628,21 +637,39 @@ export class LogPanel implements vscode.Disposable {
     const captureToggle = document.getElementById("capture-toggle");
     const jumpLatest = document.getElementById("jump-latest");
     const regexError = document.getElementById("regex-error");
+    const FILTER_DEBOUNCE_MS = 80;
 
     let userScrolledUp = false;
+    let latestUpdateVersion = 0;
     let latestLogs = [];
     let groupBySource = false;
+    let pendingFilterTimeout;
     const expandedRows = new Set();
     const state = vscode.getState() || { presets: [] };
     if (!Array.isArray(state.presets)) {
       state.presets = [];
     }
 
-    function setFilter(value) {
+    function setFilter(value, immediate) {
       chips.forEach((chip) => {
         chip.classList.toggle("active", chip.dataset.filter === value);
       });
-      vscode.postMessage({ type: "setFilter", value });
+      showLoadingState();
+
+      if (pendingFilterTimeout) {
+        clearTimeout(pendingFilterTimeout);
+        pendingFilterTimeout = undefined;
+      }
+
+      if (immediate === true) {
+        vscode.postMessage({ type: "setFilter", value });
+        return;
+      }
+
+      pendingFilterTimeout = setTimeout(() => {
+        pendingFilterTimeout = undefined;
+        vscode.postMessage({ type: "setFilter", value });
+      }, FILTER_DEBOUNCE_MS);
     }
 
     function currentFilterValue() {
@@ -682,7 +709,7 @@ export class LogPanel implements vscode.Disposable {
     }
 
     function applyPreset(preset) {
-      setFilter(preset.filter || "all");
+      setFilter(preset.filter || "all", true);
       sourceFilter.value = preset.source || "all";
       timeRange.value = preset.timeRange || "all";
       regexToggle.checked = Boolean(preset.regexEnabled);
@@ -844,6 +871,21 @@ export class LogPanel implements vscode.Disposable {
       }
 
       const payload = message.payload || {};
+      const payloadVersion = Number(payload.version || 0);
+      const payloadViewState = payload.viewState || {};
+
+      if (payloadVersion > 0 && payloadVersion < latestUpdateVersion) {
+        return;
+      }
+
+      if (!matchesCurrentViewState(payloadViewState)) {
+        return;
+      }
+
+      if (payloadVersion > 0) {
+        latestUpdateVersion = payloadVersion;
+      }
+
       const logs = Array.isArray(payload.logs) ? payload.logs : [];
       const sources = Array.isArray(payload.sources) ? payload.sources : [];
 
@@ -853,6 +895,18 @@ export class LogPanel implements vscode.Disposable {
       latestLogs = logs;
       renderLogs(logs);
     });
+
+    function matchesCurrentViewState(viewState) {
+      return String(viewState.filter || "all") === currentFilterValue()
+        && String(viewState.source || "all") === sourceFilter.value
+        && String(viewState.timeRange || "all") === timeRange.value
+        && String(viewState.searchQuery || "") === searchInput.value.trim()
+        && Boolean(viewState.regexSearch) === regexToggle.checked;
+    }
+
+    function showLoadingState() {
+      logContainer.innerHTML = '<div class="empty">Loading logs...</div>';
+    }
 
     function syncSourceOptions(sources) {
       const current = sourceFilter.value || "all";
