@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.3
+- Fixed a tab-switch race where stale logs could appear under the wrong filter (for example, debug logs shown while viewing Error).
+- Added update sequencing and active-view validation in panel updates to prevent stale payload rendering.
+- Added a small debounce for rapid filter-chip switching to improve stability during high log throughput.
+
 ## 1.0.2
 - Fixed a webview script runtime issue that could leave the Log Sight panel empty.
 - Fixed toolbar interactions (including capture Start/Stop) when the panel script failed to initialize.
