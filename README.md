@@ -87,3 +87,7 @@ Run locally:
 
 - VS Code does not expose a universal API to capture every log from every extension/process globally.
 - To capture logs from another VS Code window/process, Log Sight must also be running in that window.
+
+## Author
+
+Built by [Jashwanth Neela](https://jneela.dev/).
